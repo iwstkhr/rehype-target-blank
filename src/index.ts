@@ -1,6 +1,6 @@
 import { Element, Root } from 'hast'
 import { fromHtml } from 'hast-util-from-html';
-import { visit } from 'unist-util-visit';
+import { selectAll } from 'hast-util-select';
 
 interface Option {
   excludes?: string[];
@@ -21,19 +21,17 @@ export default function rehypeTargetBlank({
   rel: 'external',
 }) {
   return (tree: Root): void => {
-    visit(tree, 'element', (node): void => {
-      if (!isTarget(node, excludes ?? [])) {
-        return;
-      }
-
-      node.properties = {
-        ...node.properties,
-        target: '_blank',
-        rel,
-      };
-
-      icon && addExternalIcon(node, iconClass);
-    });
+    selectAll('a', tree)
+      .filter(node => isTarget(node, excludes ?? []))
+      .map(node => {
+        node.properties = {
+          ...node.properties,
+          target: '_blank',
+          rel,
+        };
+        return node;
+      })
+      .forEach(node => icon && addExternalIcon(node, iconClass));
   };
 }
 
@@ -46,8 +44,7 @@ export default function rehypeTargetBlank({
  */
 function isTarget(node: Element, excludes: string[]): boolean {
   const href = node.properties.href?.toString() ?? '';
-  return node.tagName === 'a'
-    && excludes.filter(exclude => href.startsWith(exclude)).length === 0;
+  return excludes.filter(exclude => href.startsWith(exclude)).length === 0;
 }
 
 /**

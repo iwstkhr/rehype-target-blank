@@ -1,5 +1,5 @@
 import { fromHtml } from 'hast-util-from-html';
-import { visit } from 'unist-util-visit';
+import { selectAll } from 'hast-util-select';
 export default function rehypeTargetBlank({ excludes, icon, iconClass, rel, } = {
     excludes: ['http://localhost', '#'],
     icon: true,
@@ -7,13 +7,13 @@ export default function rehypeTargetBlank({ excludes, icon, iconClass, rel, } = 
     rel: 'external',
 }) {
     return (tree) => {
-        visit(tree, 'element', (node) => {
-            if (!isTarget(node, excludes !== null && excludes !== void 0 ? excludes : [])) {
-                return;
-            }
+        selectAll('a', tree)
+            .filter(node => isTarget(node, excludes !== null && excludes !== void 0 ? excludes : []))
+            .map(node => {
             node.properties = Object.assign(Object.assign({}, node.properties), { target: '_blank', rel });
-            icon && addExternalIcon(node, iconClass);
-        });
+            return node;
+        })
+            .forEach(node => icon && addExternalIcon(node, iconClass));
     };
 }
 /**
@@ -26,8 +26,7 @@ export default function rehypeTargetBlank({ excludes, icon, iconClass, rel, } = 
 function isTarget(node, excludes) {
     var _a, _b;
     const href = (_b = (_a = node.properties.href) === null || _a === void 0 ? void 0 : _a.toString()) !== null && _b !== void 0 ? _b : '';
-    return node.tagName === 'a'
-        && excludes.filter(exclude => href.startsWith(exclude)).length === 0;
+    return excludes.filter(exclude => href.startsWith(exclude)).length === 0;
 }
 /**
  * Add an external icon to a specified node.
